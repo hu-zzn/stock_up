@@ -67,18 +67,19 @@ class HomePage extends StatelessWidget {
           decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
-                color: const Color.fromARGB(205, 189, 189, 189),        // shadow color
-                blurRadius: 10,            // soften the shadow
-                spreadRadius: 2,           // extend the shadow
-                offset: Offset(0, 5),      // move it slightly down
+                color: const Color.fromARGB(205, 189, 189, 189),
+                blurRadius: 10,
+                spreadRadius: 2,
+                offset: Offset(0, 5),
               ),
             ],
           ),
           child: TextField(
+            
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.white,
-              
+              prefixIcon: Icon(Icons.search, color: Colors.grey),
               border: OutlineInputBorder(
                 borderSide: BorderSide.none,
                 borderRadius: BorderRadius.circular(10)
