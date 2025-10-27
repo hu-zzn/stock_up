@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:temp/pages/home.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Hive.initFlutter();
+
+  await Hive.openBox('itemsBox');
+  await Hive.openBox('selectedItemsBox');
+  await Hive.openBox('listsBox');
+
   runApp(const MyApp());
 }
 
