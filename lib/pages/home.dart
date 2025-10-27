@@ -4,11 +4,33 @@ import 'package:flutter_svg/flutter_svg.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  static final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,  
+      endDrawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(color: const Color.fromARGB(255, 185, 170, 188)),
+              child: Text('Menu', style: TextStyle(color: Colors.white)),
+            ),
+            ListTile(
+              leading: Icon(Icons.settings),
+              title: Text('Settings'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
       appBar: appbar(),
-      body: body()
+      body: body(),
+
     );
   }
 
@@ -37,7 +59,9 @@ class HomePage extends StatelessWidget {
       ),
       actions: [
         GestureDetector(
-          onTap: () {},
+          onTap: () {
+             _scaffoldKey.currentState?.openEndDrawer();
+          },
           child: Container(
             margin: EdgeInsets.all(10),
             alignment: Alignment.center,
