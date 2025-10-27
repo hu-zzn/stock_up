@@ -93,7 +93,6 @@ class HomePage extends StatelessWidget {
       ],
     );
   }
- 
   Column body() {
     return Column(
       children: [
@@ -110,7 +109,6 @@ class HomePage extends StatelessWidget {
             ],
           ),
           child: TextField(
-
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.white,
@@ -122,10 +120,72 @@ class HomePage extends StatelessWidget {
             ),
           ),
         ),
+        Expanded(
+          child: ValueListenableBuilder(
+            valueListenable: Hive.box<Item>('itemsBox').listenable(),
+            builder: (context, Box<Item> box, _) {
+              if (box.values.isEmpty) {
+                return const Center(child: Text('No items added yet.'));
+              }
+              return GridView.builder(
+                padding: const EdgeInsets.all(20),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 0.9,
+                ),
+                itemCount: box.values.length,
+                itemBuilder: (context, index) {
+                  final item = box.getAt(index);
+                  return Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    elevation: 5,
+                    color: const Color.fromARGB(255, 239, 230, 240),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Text(
+                            item?.name ?? 'Unnamed Item',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Text('Category: ${item?.category ?? '-'}'),
+                          Text('Brand: ${item?.brand ?? '-'}'),
+                          Text('Unit: ${item?.defaultUnit ?? '-'}'),
+                          const SizedBox(height: 4),
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: IconButton(
+                              icon: Icon(
+                                item?.isFavorite == true
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: Colors.pinkAccent,
+                              ),
+                              onPressed: () {
+                                item?.isFavorite = !(item.isFavorite);
+                                item?.save();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
       ],
     );
   }
-
 
   void _addItemDialog(BuildContext context) {
     final nameController = TextEditingController();
@@ -176,7 +236,6 @@ class HomePage extends StatelessWidget {
       backgroundColor: const Color.fromARGB(255, 185, 170, 188),
       onPressed: () => _addItemDialog(context),
       child: const Icon(Icons.add),
-      
     );
   }
 }
