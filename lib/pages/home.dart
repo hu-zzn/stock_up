@@ -1,26 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:uuid/uuid.dart';
-import 'package:hive_ce_flutter/hive_flutter.dart';
-import '../models/item_models.dart';
-import 'package:hive_ce/hive.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'category.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class HomePage extends StatelessWidget {
+final baseUrl = dotenv.env['API_BASE_URL']!;
+
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  static final GlobalKey<ScaffoldState> _scaffoldKey =
-      GlobalKey<ScaffoldState>();
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
 
-  
+class _HomePageState extends State<HomePage> {
+  static final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  late Future<List<String>> _categoriesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoriesFuture = fetchCategories();
+  }
+
+  Future<List<String>> fetchCategories() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/categories'));
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data.cast<String>();
+      } else {
+        throw Exception('Failed to load categories');
+      }
+    } catch (e) {
+      throw Exception('Error fetching categories: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       endDrawer: _buildDrawer(context),
-      appBar: appbar(),
-      body: body(),
-      floatingActionButton: _buildFloatingButton(context),
+      appBar: _buildAppBar(),
+      body: _buildBody(),
     );
   }
 
@@ -29,15 +53,15 @@ class HomePage extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          DrawerHeader(
+          const DrawerHeader(
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 185, 170, 188),
+              color: Color.fromARGB(255, 185, 170, 188),
             ),
-            child: Text('Menu', style: TextStyle(color: Colors.white)),
+            child: Text('Menu', style: TextStyle(color: Colors.white, fontSize: 18)),
           ),
           ListTile(
-            leading: Icon(Icons.settings),
-            title: Text('Settings'),
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
             onTap: () {
               Navigator.pop(context);
             },
@@ -47,17 +71,16 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  AppBar appbar() {
+  AppBar _buildAppBar() {
     return AppBar(
-      title: Text('StockUp', style: TextStyle(fontWeight: FontWeight.bold)),
+      title: const Text('StockUp', style: TextStyle(fontWeight: FontWeight.bold)),
       centerTitle: true,
       backgroundColor: const Color.fromARGB(255, 239, 220, 220),
       elevation: 0.0,
-      //left button
       leading: GestureDetector(
         onTap: () {},
         child: Container(
-          margin: EdgeInsets.all(10),
+          margin: const EdgeInsets.all(10),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: const Color.fromARGB(255, 239, 230, 240),
@@ -76,7 +99,7 @@ class HomePage extends StatelessWidget {
             _scaffoldKey.currentState?.openEndDrawer();
           },
           child: Container(
-            margin: EdgeInsets.all(10),
+            margin: const EdgeInsets.all(10),
             alignment: Alignment.center,
             width: 40,
             decoration: BoxDecoration(
@@ -93,149 +116,70 @@ class HomePage extends StatelessWidget {
       ],
     );
   }
-  Column body() {
-    return Column(
-      children: [
-        Container(
-          margin: EdgeInsets.only(top: 40, left: 20, right: 20),
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: const Color.fromARGB(205, 189, 189, 189),
-                blurRadius: 10,
-                spreadRadius: 2,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          child: TextField(
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              prefixIcon: Icon(Icons.search, color: Colors.grey),
-              border: OutlineInputBorder(
-                borderSide: BorderSide.none,
-                borderRadius: BorderRadius.circular(10),
-              ),
+
+  Widget _buildBody() {
+    return FutureBuilder<List<String>>(
+      future: _categoriesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No categories available.'));
+        }
+
+        final categories = snapshot.data!;
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: GridView.builder(
+            itemCount: categories.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 1.2,
             ),
-          ),
-        ),
-        Expanded(
-          child: ValueListenableBuilder(
-            valueListenable: Hive.box<Item>('itemsBox').listenable(),
-            builder: (context, Box<Item> box, _) {
-              if (box.values.isEmpty) {
-                return const Center(child: Text('No items added yet.'));
-              }
-              return GridView.builder(
-                padding: const EdgeInsets.all(20),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 0.9,
-                ),
-                itemCount: box.values.length,
-                itemBuilder: (context, index) {
-                  final item = box.getAt(index);
-                  return Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    elevation: 5,
-                    color: const Color.fromARGB(255, 239, 230, 240),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Text(
-                            item?.name ?? 'Unnamed Item',
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          Text('Category: ${item?.category ?? '-'}'),
-                          Text('Brand: ${item?.brand ?? '-'}'),
-                          Text('Unit: ${item?.defaultUnit ?? '-'}'),
-                          const SizedBox(height: 4),
-                          Align(
-                            alignment: Alignment.bottomRight,
-                            child: IconButton(
-                              icon: Icon(
-                                item?.isFavorite == true
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                color: Colors.pinkAccent,
-                              ),
-                              onPressed: () {
-                                item?.isFavorite = !(item.isFavorite);
-                                item?.save();
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CategoryPage(category: category),
                     ),
                   );
                 },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 239, 230, 240),
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(2, 4),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      category,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 80, 70, 80),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
               );
             },
           ),
-        ),
-      ],
-    );
-  }
-
-  void _addItemDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    final categoryController = TextEditingController();
-    final unitController = TextEditingController();
-    final brandController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Add Item"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: "Name")),
-              TextField(controller: categoryController, decoration: const InputDecoration(labelText: "Category")),
-              TextField(controller: unitController, decoration: const InputDecoration(labelText: "Default Unit")),
-              TextField(controller: brandController, decoration: const InputDecoration(labelText: "Brand")),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isEmpty) return;
-              final newItem = Item(
-                id: const Uuid().v4(),
-                name: nameController.text,
-                category: categoryController.text,
-                defaultUnit: unitController.text,
-                brand: brandController.text,
-              );
-              final itemsBox = Hive.box<Item>('itemsBox');
-              itemsBox.add(newItem);
-              Navigator.pop(context);
-            },
-            child: const Text("Add"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFloatingButton(BuildContext context) {
-    return FloatingActionButton(
-      backgroundColor: const Color.fromARGB(255, 185, 170, 188),
-      onPressed: () => _addItemDialog(context),
-      child: const Icon(Icons.add),
+        );
+      },
     );
   }
 }

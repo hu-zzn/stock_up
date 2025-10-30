@@ -119,3 +119,7 @@ app.*.symbols
 !/dev/ci/**/Gemfile.lock
 /.idea
 .metadata
+lib/backend/.env
+/lib/backend/node_modules
+/backend/node_modules
+.env
